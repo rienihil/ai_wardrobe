@@ -1,12 +1,18 @@
-scripts:
-  - flutter clean
-  - flutter pub get
-  - cd ios && rm -rf Pods Podfile.lock && cd ..
-  - pod install --repo-update
-  - grep -R " -G" ios || true
-  - grep -R "\-G" . || true
+workflows:
+  ios-workflow:
+    name: Flutter iOS Build
+    instance_type: mac_mini_m1
+    max_build_duration: 60
 
-environment:
-  vars:
-    FLUTTER_BUILD_NAME: 1.0.0
-    FLUTTER_BUILD_NUMBER: 1
+    environment:
+      flutter: stable
+      xcode: latest
+
+    scripts:
+      - flutter clean
+      - flutter pub get
+      - cd ios && pod install --repo-update && cd ..
+      - flutter build ios --debug --no-codesign
+
+    artifacts:
+      - build/ios/ipa/**
