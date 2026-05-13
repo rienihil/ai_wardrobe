@@ -125,8 +125,8 @@ class _MainNavigationState extends State<MainNavigation> {
         items: const [
 
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: "Home",
+            icon: Icon(Icons.auto_awesome_rounded),
+            label: "Generate",
           ),
 
           BottomNavigationBarItem(
