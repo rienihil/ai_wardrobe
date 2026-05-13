@@ -506,7 +506,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Provider.of<ThemeProvider>(
                       context,
                       listen: false,
-                    ).toggleTheme(value);
+                    ).setDarkMode(value);
 
                     await AuthService.updateProfile({
                       "dark_mode": value,
