@@ -1,0 +1,12 @@
+scripts:
+  - flutter clean
+  - flutter pub get
+  - cd ios && rm -rf Pods Podfile.lock && cd ..
+  - pod install --repo-update
+  - grep -R " -G" ios || true
+  - grep -R "\-G" . || true
+
+environment:
+  vars:
+    FLUTTER_BUILD_NAME: 1.0.0
+    FLUTTER_BUILD_NUMBER: 1
