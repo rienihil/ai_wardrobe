@@ -69,9 +69,6 @@ class OutfitService {
       body: jsonEncode(body),
     );
 
-    print("SHOPPING RECOMMENDATIONS STATUS: ${response.statusCode}");
-    print("SHOPPING RECOMMENDATIONS RESPONSE: ${response.body}");
-
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
@@ -89,13 +86,24 @@ class OutfitService {
     }
   }
 
-  static Future<void> saveOutfit(Map<String, dynamic> outfit) async {
+  static Future<void> saveOutfit({
+    required Map<String, dynamic> outfit,
+    required String title,
+    required String? description,
+  }) async {
     final headers = await AuthService.getAuthHeaders();
 
     final response = await http.post(
       Uri.parse("$baseUrl/outfits"),
-      headers: headers,
-      body: jsonEncode(outfit),
+      headers: {
+        ...headers,
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "title": title,
+        "description": description,
+        "outfit": outfit,
+      }),
     );
 
     if (response.statusCode != 200) {

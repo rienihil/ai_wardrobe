@@ -1,7 +1,9 @@
+import 'package:ai_wardrobe/data/preferences_options.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/preferences_provider.dart';
 import '../services/outfit_service.dart';
+import '../widgets/preferences_editor.dart';
 
 class GenerateOutfitScreen extends StatefulWidget {
   const GenerateOutfitScreen({super.key});
@@ -17,10 +19,14 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
   String? condition;
   String? responseEvent;
 
+  final TextEditingController titleController = TextEditingController();
+
   bool loading = false;
   bool saving = false;
 
   String selectedEvent = "walk";
+
+  late final prefs = Provider.of<PreferencesProvider>(context);
 
   List<int> lastOutfitIds = [];
   List<dynamic> recommendations = [];
@@ -34,20 +40,17 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
     "university",
   ];
 
-  String selectedMakeup = "natural";
+  @override
+  void initState() {
+    super.initState();
 
-  bool makeupLoading = false;
-
-  String? generatedMakeupUrl;
-
-  final makeupStyles = [
-    "natural",
-    "glam",
-    "korean",
-    "goth",
-    "soft_glam",
-    "editorial",
-  ];
+    Future.microtask(() {
+      Provider.of<PreferencesProvider>(
+        context,
+        listen: false,
+      ).loadPreferences();
+    });
+  }
 
   Future<void> generate() async {
     setState(() {
@@ -96,6 +99,12 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    titleController.dispose();
+    super.dispose();
+  }
+
   Future<void> loadRecommendations() async {
     try {
       final data = await OutfitService.getShoppingRecommendations(
@@ -122,7 +131,11 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
     });
 
     try {
-      await OutfitService.saveOutfit(outfit!);
+      await OutfitService.saveOutfit(
+        outfit: outfit!,
+        title: titleController.text,
+        description: explanation,
+      );
 
       if (!mounted) return;
 
@@ -142,54 +155,6 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
         });
       }
     }
-  }
-
-  Future<void> generateMakeup({
-    bool useCustomImage = false,
-  }) async {
-
-    setState(() {
-      makeupLoading = true;
-    });
-
-    try {
-
-      String? imagePath;
-
-      if (useCustomImage) {
-
-        final picker = ImagePicker();
-
-        final picked =
-        await picker.pickImage(source: ImageSource.gallery);
-
-        if (picked != null) {
-          imagePath = picked.path;
-        }
-      }
-
-      final result = await AuthService.applyMakeup(
-        style: selectedMakeup,
-        imagePath: imagePath,
-      );
-
-      if (result != null) {
-
-        setState(() {
-          generatedMakeupUrl = result;
-        });
-      }
-
-    } catch (e) {
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Makeup Error: $e")),
-      );
-    }
-
-    setState(() {
-      makeupLoading = false;
-    });
   }
 
   String prettyLabel(String value) {
@@ -214,8 +179,6 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
     })
         .join(" ");
   }
-
-
 
   Widget clothingImage(dynamic item) {
     if (item == null) return const SizedBox();
@@ -294,6 +257,8 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
   }
 
   Widget buildRecommendationsBlock() {
+    final theme = Theme.of(context);
+
     if (recommendations.isEmpty) {
       return const SizedBox();
     }
@@ -342,9 +307,9 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: theme.colorScheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: theme.colorScheme.outlineVariant),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,122 +359,21 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
   }
 
   Widget buildSmallChip(String text) {
+    final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant,
+        ),
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 11),
+        style: theme.textTheme.bodySmall,
       ),
-    );
-  }
-
-  Widget makeupSection() {
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-
-      children: [
-
-        const Divider(height: 40),
-
-        const Text(
-          "AI Makeup Generator",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
-        DropdownButton<String>(
-          value: selectedMakeup,
-          isExpanded: true,
-
-          items: makeupStyles.map((style) {
-
-            return DropdownMenuItem(
-              value: style,
-              child: Text(style.replaceAll("_", " ")),
-            );
-
-          }).toList(),
-
-          onChanged: (value) {
-
-            setState(() {
-              selectedMakeup = value!;
-            });
-          },
-        ),
-
-        const SizedBox(height: 12),
-
-        ElevatedButton.icon(
-          icon: const Icon(Icons.face_retouching_natural),
-
-          label: const Text(
-            "Generate Makeup From Profile Photo",
-          ),
-
-          onPressed: makeupLoading
-              ? null
-              : () => generateMakeup(),
-        ),
-
-        const SizedBox(height: 12),
-
-        OutlinedButton.icon(
-          icon: const Icon(Icons.photo),
-
-          label: const Text(
-            "Upload Another Face Photo",
-          ),
-
-          onPressed: makeupLoading
-              ? null
-              : () => generateMakeup(
-            useCustomImage: true,
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        if (makeupLoading)
-          const Center(
-            child: CircularProgressIndicator(),
-          ),
-
-        if (generatedMakeupUrl != null)
-          Column(
-            children: [
-
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-
-                child: Image.network(
-                  generatedMakeupUrl!,
-                  height: 450,
-                  fit: BoxFit.cover,
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              Text(
-                "Style: ${selectedMakeup.replaceAll("_", " ")}",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-      ],
     );
   }
 
@@ -518,9 +382,13 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
     final eventLabel = prettyLabel(selectedEvent);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("AI Outfit Generator"),
-      ),
+        appBar: AppBar(
+          title: const Text("Outfit Generator"),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: ListView(
@@ -642,7 +510,17 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
 
               buildRecommendationsBlock(),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: "Outfit Title",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+
+              const SizedBox(height: 12),
 
               ElevatedButton.icon(
                 icon: const Icon(Icons.save),
@@ -650,6 +528,39 @@ class _GenerateOutfitScreenState extends State<GenerateOutfitScreen> {
                 onPressed: saving ? null : saveOutfit,
               ),
             ],
+            const SizedBox(height: 24),
+
+            Consumer<PreferencesProvider>(
+              builder: (context, prefs, _) {
+                if (prefs.loading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                return PreferencesEditor(
+                  allStyles: PreferencesOptions.allStyles,
+                  preferredStyles: prefs.preferredStyles,
+                  avoidOptions: PreferencesOptions.avoidOptions,
+                  avoidSubcategories: prefs.avoidSubcategories,
+                  fitOptions: PreferencesOptions.fitOptions,
+                  bodyShapeOptions: PreferencesOptions.bodyShapeOptions,
+                  preferredFit: prefs.preferredFit,
+                  bodyShape: prefs.bodyShape,
+
+                  onStylesChanged: prefs.setPreferredStyles,
+                  onAvoidChanged: prefs.setAvoid,
+
+                  onFitChanged: (v) {
+                    prefs.setFit(v);
+                  },
+
+                  onBodyShapeChanged: (v) {
+                    prefs.setBodyShape(v);
+                  },
+
+                  onSave: prefs.savePreferences,
+                );
+              },
+            ),
           ],
         ),
       ),

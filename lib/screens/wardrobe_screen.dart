@@ -85,8 +85,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                     decoration: BoxDecoration(
 
                       color: isSelected
-                          ? Colors.black
-                          : Colors.grey[200],
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.surface,
 
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -98,8 +98,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
                       style: TextStyle(
                         color: isSelected
-                            ? Colors.white
-                            : Colors.black,
+                            ? Theme.of(context).colorScheme.onPrimary
+                            : Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),

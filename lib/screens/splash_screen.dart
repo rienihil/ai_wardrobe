@@ -1,12 +1,11 @@
-import 'package:ai_wardrobe/screens/main_navigation.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/theme_provider.dart';
 import '../services/auth_service.dart';
-import 'home_screen.dart';
+
 import 'login_screen.dart';
+import 'main_navigation.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,13 +16,15 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
 
+  bool loading = true;
+
   @override
   void initState() {
     super.initState();
-    initialize();
+    checkAuth();
   }
 
-  Future<void> initialize() async {
+  Future<void> checkAuth() async {
 
     final token = await AuthService.getToken();
 
@@ -40,19 +41,34 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
-    await Provider.of<ThemeProvider>(
-      context,
-      listen: false,
-    ).initTheme();
+    try {
+      await Provider.of<ThemeProvider>(
+        context,
+        listen: false,
+      ).initTheme();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const MainNavigation(),
-      ),
-    );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const MainNavigation(),
+        ),
+      );
+
+    } catch (e) {
+
+      await AuthService.logout();
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const LoginScreen(),
+        ),
+      );
+    }
   }
 
   @override

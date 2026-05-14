@@ -3,6 +3,9 @@ import 'clothing_item.dart';
 class Outfit {
   String? id;
 
+  String? title;
+  String? description;
+
   ClothingItem? top;
   ClothingItem? bottom;
   ClothingItem? dress;
@@ -11,6 +14,8 @@ class Outfit {
 
   Outfit({
     this.id,
+    this.title,
+    this.description,
     this.top,
     this.bottom,
     this.dress,
@@ -21,6 +26,8 @@ class Outfit {
   factory Outfit.fromJson(Map<String, dynamic> json) {
     return Outfit(
       id: json['id'].toString(),
+      title: json['title'],
+      description: json['description'],
       top: json['top'] != null ? ClothingItem.fromJson(json['top']) : null,
       bottom: json['bottom'] != null ? ClothingItem.fromJson(json['bottom']) : null,
       dress: json['dress'] != null ? ClothingItem.fromJson(json['dress']) : null,

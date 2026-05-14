@@ -5,8 +5,11 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
+import '../data/preferences_options.dart';
+import '../providers/preferences_provider.dart';
 import '../providers/theme_provider.dart';
 import '../services/auth_service.dart';
+import '../widgets/preferences_editor.dart';
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -30,58 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<String> citySuggestions = [];
   bool showCitySuggestions = false;
 
-  final List<String> allStyles = [
-    "Casual",
-    "Streetwear",
-    "Formal",
-    "Sport",
-    "Romantic",
-    "Vintage",
-  ];
-
-  final List<String> fitOptions = [
-    "Regular",
-    "Oversized",
-    "Fitted",
-  ];
-
-  final List<String> bodyShapeOptions = [
-    "None",
-    "Pear",
-    "Apple",
-    "Rectangle",
-    "Hourglass",
-    "Inverted triangle",
-  ];
-
-  final List<String> avoidOptions = [
-    "t-shirt",
-    "tank_top",
-    "longsleeve",
-    "top",
-    "shirt",
-    "blouse",
-    "sweatshirt",
-    "hoodie",
-    "sweater",
-    "jeans",
-    "trousers",
-    "skirt",
-    "shorts",
-    "leggings",
-    "sweatpants",
-    "dress",
-    "sneakers",
-    "sport_shoes",
-    "heels",
-    "boots",
-    "flats",
-    "coat",
-    "jacket",
-    "blazer",
-    "cardigan",
-    "puffer",
-  ];
+  late final prefs = Provider.of<PreferencesProvider>(context);
 
   List<String> preferredStyles = [];
   String preferredFit = "Regular";
@@ -94,8 +46,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    loadUserData();
-    loadUserPreferences();
+
+    Future.microtask(() {
+      Provider.of<PreferencesProvider>(
+        context,
+        listen: false,
+      ).loadPreferences();
+      loadUserData();
+    });
   }
 
   @override
@@ -277,39 +235,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await AuthService.updateProfile({"city": selected});
   }
 
-  void changeLanguage() async {
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return SimpleDialog(
-          title: const Text("Select Language"),
-          children: [
-            SimpleDialogOption(
-              child: const Text("English"),
-              onPressed: () => Navigator.pop(context, "English"),
-            ),
-            SimpleDialogOption(
-              child: const Text("Russian"),
-              onPressed: () => Navigator.pop(context, "Russian"),
-            ),
-            SimpleDialogOption(
-              child: const Text("Kazakh"),
-              onPressed: () => Navigator.pop(context, "Kazakh"),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (result != null) {
-      setState(() {
-        language = result;
-      });
-
-      await AuthService.updateProfile({"language": result});
-    }
-  }
-
+  // void changeLanguage() async {
+  //   final result = await showDialog<String>(
+  //     context: context,
+  //     builder: (context) {
+  //       return SimpleDialog(
+  //         title: const Text("Select Language"),
+  //         children: [
+  //           SimpleDialogOption(
+  //             child: const Text("English"),
+  //             onPressed: () => Navigator.pop(context, "English"),
+  //           ),
+  //           SimpleDialogOption(
+  //             child: const Text("Russian"),
+  //             onPressed: () => Navigator.pop(context, "Russian"),
+  //           ),
+  //           SimpleDialogOption(
+  //             child: const Text("Kazakh"),
+  //             onPressed: () => Navigator.pop(context, "Kazakh"),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+  //
+  //   if (result != null) {
+  //     setState(() {
+  //       language = result;
+  //     });
+  //
+  //     await AuthService.updateProfile({"language": result});
+  //   }
+  // }
+  //
   void logout() async {
     await AuthService.logout();
 
@@ -487,12 +445,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
 
-                ListTile(
-                  leading: const Icon(Icons.language),
-                  title: const Text("Language"),
-                  subtitle: Text(language),
-                  onTap: changeLanguage,
-                ),
+                // ListTile(
+                //   leading: const Icon(Icons.language),
+                //   title: const Text("Language"),
+                //   subtitle: Text(language),
+                //   onTap: changeLanguage,
+                // ),
 
                 SwitchListTile(
                   secondary: const Icon(Icons.dark_mode),
@@ -521,124 +479,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           buildSectionTitle("Style Preferences"),
 
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: loadingPreferences
-                  ? const Center(child: CircularProgressIndicator())
-                  : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Preferred styles",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
+          Consumer<PreferencesProvider>(
+            builder: (context, prefs, _) {
+              if (prefs.loading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-                  const SizedBox(height: 8),
+              return PreferencesEditor(
+                allStyles: PreferencesOptions.allStyles,
+                preferredStyles: prefs.preferredStyles,
+                avoidOptions: PreferencesOptions.avoidOptions,
+                avoidSubcategories: prefs.avoidSubcategories,
+                fitOptions: PreferencesOptions.fitOptions,
+                bodyShapeOptions: PreferencesOptions.bodyShapeOptions,
+                preferredFit: prefs.preferredFit,
+                bodyShape: prefs.bodyShape,
 
-                  buildChipGroup(
-                    options: allStyles,
-                    selectedValues: preferredStyles,
-                    onChanged: (value, selected) {
-                      setState(() {
-                        if (selected) {
-                          if (!preferredStyles.contains(value)) {
-                            preferredStyles.add(value);
-                          }
-                        } else {
-                          preferredStyles.remove(value);
-                        }
-                      });
-                    },
-                  ),
+                onStylesChanged: (v) => prefs.preferredStyles = v,
+                onAvoidChanged: (v) => prefs.avoidSubcategories = v,
+                onFitChanged: prefs.setFit,
+                onBodyShapeChanged: prefs.setBodyShape,
 
-                  const SizedBox(height: 18),
-
-                  buildDropdown(
-                    label: "Preferred fit",
-                    value: preferredFit,
-                    options: fitOptions,
-                    onChanged: (value) {
-                      setState(() {
-                        preferredFit = value;
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 18),
-
-                  const Text(
-                    "Avoid items",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  const Text(
-                    "These items will be avoided during outfit generation.",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  buildChipGroup(
-                    options: avoidOptions,
-                    selectedValues: avoidSubcategories,
-                    onChanged: (value, selected) {
-                      setState(() {
-                        if (selected) {
-                          if (!avoidSubcategories.contains(value)) {
-                            avoidSubcategories.add(value);
-                          }
-                        } else {
-                          avoidSubcategories.remove(value);
-                        }
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 18),
-
-                  buildDropdown(
-                    label: "Body shape consideration",
-                    value: bodyShape,
-                    options: bodyShapeOptions,
-                    onChanged: (value) {
-                      setState(() {
-                        bodyShape = value;
-                      });
-                    },
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.save),
-                      label: Text(
-                        savingPreferences
-                            ? "Saving..."
-                            : "Save Style Preferences",
-                      ),
-                      onPressed: savingPreferences
-                          ? null
-                          : saveUserPreferences,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                onSave: prefs.savePreferences,
+              );
+            },
           ),
 
           const SizedBox(height: 20),

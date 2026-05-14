@@ -124,32 +124,62 @@ class AuthService {
   }
 
   static Future<String?> applyMakeup({
-    required String style,
+
+    String? style,
+
     String? imagePath,
+
+    Map<String, dynamic>? customConfig,
+
   }) async {
 
     final token = await getToken();
 
     var request = http.MultipartRequest(
+
       "POST",
+
       Uri.parse("$baseUrl/apply-makeup"),
     );
 
-    request.headers["Authorization"] = "Bearer $token";
+    request.headers["Authorization"] =
+    "Bearer $token";
 
-    request.fields["style"] = style;
+    if (style != null) {
+
+      request.fields["style"] = style;
+    }
+
+    if (customConfig != null) {
+      request.fields["custom_config"] = jsonEncode({
+        "lipstick_color": customConfig["lipstick_color"],
+        "eyeshadow_color": customConfig["eyeshadow_color"],
+        "blush_color": customConfig["blush_color"],
+        "lipstick_intensity": customConfig["lipstick_intensity"],
+        "eyeshadow_intensity": customConfig["eyeshadow_intensity"],
+        "blush_intensity": customConfig["blush_intensity"],
+      });
+    }
 
     if (imagePath != null) {
+
       request.files.add(
-        await http.MultipartFile.fromPath("file", imagePath),
+
+        await http.MultipartFile.fromPath(
+          "file",
+          imagePath,
+        ),
       );
     }
 
     final response = await request.send();
 
     if (response.statusCode == 200) {
-      final responseData =
-      jsonDecode(await response.stream.bytesToString());
+
+      final responseData = jsonDecode(
+
+        await response.stream.bytesToString(),
+      );
 
       return responseData["image_url"];
     }

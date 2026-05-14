@@ -1,3 +1,4 @@
+import 'package:ai_wardrobe/providers/preferences_provider.dart';
 import 'package:ai_wardrobe/providers/theme_provider.dart';
 import 'package:ai_wardrobe/screens/login_screen.dart';
 import 'package:ai_wardrobe/screens/splash_screen.dart';
@@ -10,9 +11,11 @@ void main() async {
 
   await dotenv.load(fileName: ".env");
 
-  runApp(
-      ChangeNotifierProvider(
-          create: (_) => ThemeProvider(),
+  runApp(MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => PreferencesProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
           child: const AIWardrobeApp()
       )
   );
